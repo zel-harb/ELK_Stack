@@ -61,6 +61,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+  
   kibana:
     build: ./kibana
     container_name: kibana
@@ -79,6 +80,7 @@ services:
         condition: service_healthy
     networks:
       - wp-network
+  
   logstash:
     build: ./logstash/
     container_name: logstash
@@ -100,14 +102,14 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /home/zel-harb/data/mariadb
+      device: /home/ackera/data/mariadb
       o: bind
   wordpress-files:
     name: wordpress_data
     driver: local
     driver_opts:
       type: none
-      device: /home/zel-harb/data/wordpress
+      device: /home/ackera/data/wordpress
       o: bind
 
 networks:

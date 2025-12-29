@@ -14,15 +14,12 @@ xpack.security.enabled: true
 
 xpack.security.http.ssl.enabled: true
 
-
-xpack.security.http.ssl.certificate: /usr/share/elasticsearch/config/certs/elasticsearch+3.pem
-xpack.security.http.ssl.key: /usr/share/elasticsearch/config/certs/elasticsearch+3-key.pem
-xpack.security.http.ssl.certificate_authorities: [ /usr/share/elasticsearch/config/certs/elasticsearch+3.pem ]
+xpack.security.http.ssl.certificate: certs/elasticsearch.pem
+xpack.security.http.ssl.key: certs/elasticsearch-key.pem
+xpack.security.http.ssl.certificate_authorities: [ "certs/rootCA.pem" ]
 
 xpack.security.transport.ssl.enabled: true
 xpack.security.transport.ssl.verification_mode: certificate
 xpack.security.transport.ssl.certificate: certs/elasticsearch.pem
 xpack.security.transport.ssl.key: certs/elasticsearch-key.pem
 xpack.security.transport.ssl.certificate_authorities: [ "certs/rootCA.pem" ]
-
-
