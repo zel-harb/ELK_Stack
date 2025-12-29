@@ -1,0 +1,116 @@
+services:
+  mariadb:
+    build: ./requirements/mariadb
+    container_name: mariadb
+    image: mariadb
+    env_file:
+      - .env
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - wp-network
+  
+  wordpress:
+    build: ./requirements/wordpress
+    container_name: wordpress
+    image: wordpress
+    depends_on:
+      - mariadb
+    env_file:
+      - .env
+    volumes:
+      - wordpress-files:/var/www/html
+    networks:
+      - wp-network
+  
+  nginx:
+    build: ./requirements/nginx
+    container_name: nginx
+    image: nginx
+    ports:
+      - "443:443"
+    depends_on:
+      - wordpress
+    volumes:
+      - wordpress-files:/var/www/html
+      - nginx_log:/var/log/nginx
+    networks:
+      - wp-network
+
+  elasticsearch:
+    build: ./elasticsearch
+    container_name: elasticsearch
+    env_file: .env
+    environment:
+      - xpack.security.enabled=true
+      - ES_JAVA_OPTS=${ES_JAVA_OPTS}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
+      - discovery.type=single-node
+    networks:
+      - wp-network
+    ports:
+      - 9200:9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -sf -k -u elastic:${ELASTIC_PASSWORD} https://localhost:9200/_cluster/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+  kibana:
+    build: ./kibana
+    container_name: kibana
+    env_file: .env
+    environment:
+      - ELASTICSEARCH_HOSTS=https://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
+      - XPACK_ENCRYPTED_SAVED_OBJECTS_ENCRYPTION_KEY=eebae62441418102ff56ec96b75dbca1
+      - XPACK_REPORTING_ENCRYPTION_KEY=e32a2d1edec62dcd6cdf34ca584b9ff7
+      - XPACK_SECURITY_ENCRYPTION_KEY=9e6aaaef69f757f1eec91fcdfc76a713
+    ports:
+      - 5601:5601
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - wp-network
+  logstash:
+    build: ./logstash/
+    container_name: logstash
+    env_file: .env
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - wp-network
+    volumes:
+      - nginx_log:/var/log/nginx:ro 
+    command: >
+      bash -c "exec logstash -f /usr/share/logstash/pipeline/logstash.conf --config.reload.automatic"
+  
+volumes:
+  nginx_log:
+  mariadb-data:
+    name: db_data
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/zel-harb/data/mariadb
+      o: bind
+  wordpress-files:
+    name: wordpress_data
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/zel-harb/data/wordpress
+      o: bind
+
+networks:
+  wp-network:
+    driver: bridge
+    
